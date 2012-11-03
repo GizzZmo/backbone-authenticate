@@ -14,3 +14,9 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType
       @bone.trigger 'discovered'
 
 
+  request: (url, options) =>
+    if @bone.registry.communicationType == 'jsonp'
+      options.data = options.data or {}
+      options.data.format = 'json-p'
+
+    jQuery.ajax url, options

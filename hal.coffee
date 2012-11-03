@@ -11,5 +11,6 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType
       modelName = hyperbone.util.naturalModelName resourceName
 
       @bone.models[modelName] = hyperbone.Model.factory resource.href, @
+      @bone.trigger 'discovered'
 
 

@@ -1,6 +1,4 @@
-hyperbone.serviceTypes.HALServiceType = class HALServiceType
-  constructor: (@bone) ->
-
+hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.serviceTypes.ServiceType
   discoverResources: (apiRoot) =>
     for resourceName of apiRoot._links
       resource = apiRoot._links[resourceName]

@@ -45,3 +45,10 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       options.data.format = 'json-p'
 
     super url, options
+
+  parseModel: (response) ->
+    response
+
+  parseCollection: (response) ->
+    response
+

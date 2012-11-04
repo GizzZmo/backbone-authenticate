@@ -46,9 +46,28 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
     super url, options
 
-  parseModel: (response) ->
-    response
+  parseModel: (response, model) ->
+    result = {}
+    attributes = _.keys response
 
-  parseCollection: (response) ->
-    response
+    _.each attributes, (attributeName) ->
+      if attributeName is '_links'
+        return
+
+      if attributeName is '_embedded'
+        return
+
+      result[attributeName] = response[attributeName]
+
+    # TODO: Add proper support for relations. 
+
+    result
+
+  parseCollection: (response, collection) ->
+    keys = _.keys response._embedded
+ 
+    if keys.length > 0
+      response._embedded[keys[0]]
+    else
+      []
 

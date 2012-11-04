@@ -17,4 +17,4 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       options.data = options.data or {}
       options.data.format = 'json-p'
 
-    jQuery.ajax url, options
+    super url, options

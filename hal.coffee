@@ -9,8 +9,8 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       modelName = hyperbone.util.naturalModelName resourceName
       collectionName = hyperbone.util.naturalCollectionName resourceName
 
-      model = hyperbone.Model.factory @bone, resource.href
-      collection = hyperbone.Collection.factory @bone, model, resource.href
+      model = hyperbone.Model.factory @bone, modelName, resource.href
+      collection = hyperbone.Collection.factory @bone, collectionName, model, resource.href
 
       @bone.models[modelName] = model
       @bone.collections[collectionName] = collection

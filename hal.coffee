@@ -7,10 +7,36 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
         continue
 
       modelName = hyperbone.util.naturalModelName resourceName
+      collectionName = hyperbone.util.naturalCollectionName resourceName
 
-      @bone.models[modelName] = hyperbone.Model.factory resource.href, @
+      model = hyperbone.Model.factory resource.href, @bone
+
+      @bone.models[modelName] = model
+      @bone.collections[collectionName] = hyperbone.Collection.factory @bone, model, resource.href
       @bone.trigger 'discovered'
 
+  url: (originalURL) ->
+    indexOfParams = originalURL.indexOf '?'
+
+    if indexOfParams > -1
+      url = originalURL.slice 0, indexOfParams
+      paramsLength = originalURL.length - url.length
+
+      params = originalURL.slice indexOfParams + 1, indexOfParams + paramsLength
+    else
+      url = originalURL
+      params = ''
+
+    if @bone.registry.communicationType == 'jsonp'
+      if params.length > 0
+        params += '&'
+
+      params += 'format=json-p&callback=?'
+ 
+    if params.length > 0
+      url = url + '?' + params
+
+    url
 
   request: (url, options) =>
     if @bone.registry.communicationType == 'jsonp'

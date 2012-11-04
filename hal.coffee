@@ -9,10 +9,11 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       modelName = hyperbone.util.naturalModelName resourceName
       collectionName = hyperbone.util.naturalCollectionName resourceName
 
-      model = hyperbone.Model.factory resource.href, @bone
+      model = hyperbone.Model.factory @bone, resource.href
+      collection = hyperbone.Collection.factory @bone, model, resource.href
 
       @bone.models[modelName] = model
-      @bone.collections[collectionName] = hyperbone.Collection.factory @bone, model, resource.href
+      @bone.collections[collectionName] = collection
       @bone.trigger 'discovered'
 
   url: (originalURL) ->

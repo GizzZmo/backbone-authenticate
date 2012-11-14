@@ -44,22 +44,25 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       options.data = options.data or {}
       options.data.format = 'jsonp'
 
+    else if @bone.registry.communicationType == 'cors'
+      options.dataType = 'json'
+      options.crossDomain = true
+
     super url, options
 
   parseModel: (response, model) ->
+    model.meta = model.meta or {}
+
     result = {}
     attributes = _.keys response
 
     _.each attributes, (attributeName) ->
-      if attributeName is '_links'
-        return
+      if attributeName is '_links' or attributeName is '_embedded'
+        # TODO: Add proper support for relations.
+        model.meta[attributeName.slice 1] = response[attributeName]
 
-      if attributeName is '_embedded'
-        return
-
-      result[attributeName] = response[attributeName]
-
-    # TODO: Add proper support for relations. 
+      else
+        result[attributeName] = response[attributeName]
 
     result
 

@@ -37,6 +37,9 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
     if params.length > 0
       url = url + '?' + params
 
+    if (url.lastIndexOf '/') != (url.length-1)
+      url = url + '/'
+
     url
 
   request: (url, options) =>

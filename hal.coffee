@@ -14,7 +14,16 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
       @bone.models[modelName] = model
       @bone.collections[collectionName] = collection
-      @bone.trigger 'discovered'
+
+    @request @bone.registry.root,
+      type: 'OPTIONS'
+      success: (response) =>
+        @parseSchema response.schema
+
+  parseSchema: (schema) =>
+    @schema = schema
+
+    @bone.trigger 'discovered'
 
   url: (originalURL) =>
     indexOfParams = originalURL.indexOf '?'

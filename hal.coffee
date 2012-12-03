@@ -16,7 +16,7 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       @bone.collections[collectionName] = collection
       @bone.trigger 'discovered'
 
-  url: (originalURL) ->
+  url: (originalURL) =>
     indexOfParams = originalURL.indexOf '?'
 
     if indexOfParams > -1
@@ -53,7 +53,7 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
     super url, options
 
-  parseModel: (response, model) ->
+  parseModel: (response, model) =>
     model.meta = model.meta or {}
 
     result = {}
@@ -69,7 +69,7 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
     result
 
-  parseCollection: (response, collection) ->
+  parseCollection: (response, collection) =>
     keys = _.keys response._embedded
  
     if keys.length > 0

@@ -36,12 +36,6 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
     else
       url = originalURL
       params = ''
-
-    if @bone.registry.communicationType == 'jsonp'
-      if params.length > 0
-        params += '&'
-
-      params += 'format=jsonp&callback=?'
  
     if params.length > 0
       url = url + '?' + params
@@ -52,11 +46,7 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
     url
 
   request: (url, options) =>
-    if @bone.registry.communicationType == 'jsonp'
-      options.data = options.data or {}
-      options.data.format = 'jsonp'
-
-    else if @bone.registry.communicationType == 'cors'
+    if @bone.registry.communicationType == 'cors'
       options.dataType = 'json'
       options.crossDomain = true
 

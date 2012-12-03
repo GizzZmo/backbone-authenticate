@@ -9,7 +9,7 @@ exports.config =
   files:
     javascripts:
       joinTo:
-        'out.js': /^src/
+        'hyperbone.yutani.js': /^src/
         'test/test.js': /^test/
       order:
         before: [

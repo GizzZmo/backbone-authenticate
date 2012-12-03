@@ -13,5 +13,5 @@ exports.config =
         'test/test.js': /^test/
       order:
         before: [
-          'src/main.js'
+          'src/yutani.coffee'
         ]

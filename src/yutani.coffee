@@ -1,5 +1,8 @@
 # TODO: Clean this up.
 hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.serviceTypes.ServiceType
+  defaultInputTypes:
+    'boolean': 'Checkbox'
+
   relationships:
     many: Backbone.HasMany
     one: Backbone.HasOne
@@ -55,14 +58,19 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
         for fieldName of resource.fields
           field = resource.fields[fieldName]
 
-          relatedModel.prototype.schema[fieldName] = {}
-
           if field.type == 'relation'
             # In an ideal world, createRelation would actually be a new "Relation" object.
             relation = @createRelation field, fieldName
 
             # Append the new relation to our model
             relatedModel.prototype.relations.push relation
+
+            # TODO: Recursive forms for relations?
+
+          else
+            if fieldName != 'id'
+              relatedModel.prototype.schema[fieldName] =
+                type: @defaultInputTypes[field.type] or 'Text'
 
     for model in @bone.models
       model.setup()

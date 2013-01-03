@@ -1,3 +1,4 @@
+# TODO: Clean this up.
 hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.serviceTypes.ServiceType
   relationships:
     many: Backbone.HasMany
@@ -7,7 +8,7 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
     @request @bone.registry.root,
       type: 'OPTIONS'
       success: (response) =>
-        @parseSchema response.schema
+        @schema = response.schema
 
         for resourceName of apiRoot._links
           resource = apiRoot._links[resourceName]
@@ -24,32 +25,10 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
           @bone.models[modelName] = model
           @bone.collections[collectionName] = collection
 
-        @discoverRelations()
+        @parseSchema()
 
-  discoverRelations: =>
-    for resourceName of @schema
-      resource = @schema[resourceName]
+        @bone.trigger 'discovered'
 
-      if resource.fields?
-        modelName = hyperbone.util.naturalModelName resourceName
-
-        for fieldName of resource.fields
-          field = resource.fields[fieldName]
-
-          if field.type != 'relation'
-            continue
-
-          # In an ideal world, createRelation would actually be a new "Relation" object.
-          relation = @createRelation field, fieldName
-
-          # Append the new relation to our model
-          relatedModel = @bone.models[modelName]
-
-          relatedModel.prototype.relations.push relation
-
-    for model in @bone.models
-      model.setup()
-          
   createRelation: (field, name) =>
     # If this isn't true then the API is using a relationship that hasn't been implemented. :(
     if field.relationship in _.keys @relationships
@@ -63,10 +42,30 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
       return relation
 
-  parseSchema: (schema) =>
-    @schema = schema
+  parseSchema: =>
+    for resourceName of @schema
+      resource = @schema[resourceName]
 
-    @bone.trigger 'discovered'
+      if resource.fields?
+        modelName = hyperbone.util.naturalModelName resourceName
+
+        relatedModel = @bone.models[modelName]
+        relatedModel.prototype.schema = {}
+
+        for fieldName of resource.fields
+          field = resource.fields[fieldName]
+
+          relatedModel.prototype.schema[fieldName] = {}
+
+          if field.type == 'relation'
+            # In an ideal world, createRelation would actually be a new "Relation" object.
+            relation = @createRelation field, fieldName
+
+            # Append the new relation to our model
+            relatedModel.prototype.relations.push relation
+
+    for model in @bone.models
+      model.setup()
 
   url: (originalURL) =>
     indexOfParams = originalURL.indexOf '?'
@@ -95,6 +94,9 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
       options.crossDomain = true
 
     super url, options
+
+  getFormFromModel: (model) ->
+
 
   parseModel: (response, model) =>
     ### Performs any special parsing for models for this service.

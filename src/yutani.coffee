@@ -2,6 +2,10 @@
 hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.serviceTypes.ServiceType
   defaultInputTypes:
     'boolean': 'Checkbox'
+    'integer': 'Number'
+    'text': 'TextArea'
+    'date': 'Date'
+    'datetime': 'DateTime'
 
   relationships:
     many: Backbone.HasMany

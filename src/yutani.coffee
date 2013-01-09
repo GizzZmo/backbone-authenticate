@@ -109,7 +109,6 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
 
   getFormFromModel: (model) ->
 
-
   parseModel: (response, model) =>
     ### Performs any special parsing for models for this service.
 
@@ -117,6 +116,18 @@ hyperbone.serviceTypes.HALServiceType = class HALServiceType extends hyperbone.s
     any service-specific parsing
 
     ###
+
+    # TODO: Test this some some more test data is available.
+    for relationType in ['_links', '_embedded']
+      if response[relationType]?
+        for attribute in response[relationType]
+          if attribute == 'self' then continue
+
+          response[attribute] = response._links[attribute]
+          
+      delete response[relationType]
+
+    return response
 
   parseCollection: (response, collection) =>
     keys = _.keys response._embedded

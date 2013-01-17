@@ -3,7 +3,7 @@
   "name": "backbone-authenticate",
   "description": "Exposes a simple authentication interface to your backbone applications.",
   "version": "0.0.1",
-  "homepage": "",
+  "homepage": "git://source.alytis.net:backbone-authenticate",
 
   "repository": {
     "type": "git",

@@ -9,9 +9,7 @@ exports.config =
   files:
     javascripts:
       joinTo:
-        'hyperbone.yutani.js': /^src/
+        'backbone.authenticate.js': /^src/
         'test/test.js': /^test/
       order:
-        before: [
-          'src/yutani.coffee'
-        ]
+        before: []

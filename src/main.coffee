@@ -53,6 +53,9 @@ Backbone.Authenticate.Authenticator = class Authenticator
   # During the auth process, this is the window where authentication is occuring.
   dialog: null
 
+  # Whether or not we are currently authenticated
+  authenticated: false
+
   requiredOptions: [
     'authenticateURI',
     'redirectURI',
@@ -205,5 +208,10 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
   processToken: (response) ->
     @token = response.access_token
+
+    if not @authenticated
+      @authenticated = true
+      @trigger 'authenticated'
+
     @trigger 'token:changed'
 

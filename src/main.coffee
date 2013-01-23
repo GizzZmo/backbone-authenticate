@@ -8,11 +8,20 @@ Provides OAuth2 client support to Backbone applications.
 # https://gist.github.com/raw/1025817/bd35871da67be0073fffc37414e3e18e627b0d22/jquery.ba-deparam.js
 
 # Create references to depenencies in the local scope
-Backbone = window.Backbone or {}
 
-_ = window._
+if window?
+  jQuery = window.jQuery
 
-jQuery = window.jQuery
+  Backbone = window.Backbone or {}
+  _ = window._
+
+else
+  jQuery = require 'jquery'
+
+  Backbone = require 'backbone'
+  _ = require 'underscore'
+
+
 $ = jQuery
 
 # Creates our Authenticator namespace if it doesn't already exist

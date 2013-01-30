@@ -173,6 +173,9 @@ Backbone.Authenticate.Authenticator = class Authenticator
     else
       @trigger 'error', parameters.error
 
+    if parameters.state?
+      @trigger 'state:change', parameters.state
+
   handleCode: (parameters) =>
     ### Response handler for "code" response type.
 

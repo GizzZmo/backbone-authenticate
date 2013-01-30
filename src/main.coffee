@@ -162,12 +162,16 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
     parameters = jQuery.deparam window.location.search[1..]
 
-    # Get a reference to our function that handles this type of response
-    handlerName = @methodNameForResponseType @registry.responseType
-    handler = @[handlerName]
+    if !parameters.error?
+      # Get a reference to our function that handles this type of response
+      handlerName = @methodNameForResponseType @registry.responseType
+      handler = @[handlerName]
 
-    # Call our handler method providing parameters object
-    handler parameters
+      # Call our handler method providing parameters object
+      handler parameters
+
+    else
+      @trigger 'error', parameters.error
 
   handleCode: (parameters) =>
     ### Response handler for "code" response type.

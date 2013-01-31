@@ -206,7 +206,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
       data: @authorizationData parameters.code
 
       success: (response) =>
-        @processToken response
+        @processToken JSON.parse response
 
   handleToken: (parameters) =>
     ### Response handler for "token" response type.
@@ -220,6 +220,8 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
   processToken: (response) =>
     authenticated = @isAuthenticated()
+
+    window.response = response
 
     @token = response.access_token
     @refreshToken = response.refresh_token

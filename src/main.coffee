@@ -41,6 +41,18 @@ Backbone.Authenticate.Authenticator = class Authenticator
   # When we have a token, it will be stored here.
   token: null
 
+  # When does this ticket expire?
+  expires: null
+
+  # When we have a refresh token, it is stored here.
+  refershToken: null
+
+  # The persmissions that have been given to us stored as a list
+  scope: []
+
+  # When we've received a token, all response parameters will be available here.
+  response: null
+
   # During the auth process, this is the window where authentication is occuring.
   dialog: null
 
@@ -88,6 +100,10 @@ Backbone.Authenticate.Authenticator = class Authenticator
         throw new Error 'The grantType option must be provided when using
                          code-based authentication.'
 
+    # Scopes are supposed to be passed as lists, but strings are supported.
+    if @registry.scope? and not @registry.scope.join?
+      @registry.scope = _.map @registry.scope.split ','
+
   authenticateURI: ->
     ### Builds the URL to our initial OAuth endpoint.                      ###
 
@@ -99,7 +115,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
     # Add state and scope as necessary
     if @registry.state? then params[@registry.paramNames.state] = @registry.state
-    if @registry.scope? then params[@registry.paramNames.scope] = @registry.scope
+    if @registry.scope? then params[@registry.paramNames.scope] = @registry.scope.join ','
 
     paramNames = _.keys params
 
@@ -189,7 +205,8 @@ Backbone.Authenticate.Authenticator = class Authenticator
       url: @registry.authorizeURI
       data: @authorizationData parameters.code
 
-      success: (response) => @processToken
+      success: (response) =>
+        @processToken response
 
   handleToken: (parameters) =>
     ### Response handler for "token" response type.
@@ -201,7 +218,24 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
     @processToken parameters.token
 
-  processToken: (response) ->
+  processToken: (response) =>
+    authenticated = @isAuthenticated()
+
     @token = response.access_token
+    @refreshToken = response.refresh_token
+    @expires = response.expires_in
+    @scope = response.scope.split ','
+
+    if @refreshToken != null then setTimeout @refreshAuthorization, @expires * 1000
+
     @trigger 'token:changed'
+
+    # The "authenticated" event is a special event that only is triggered when
+    # a user has manually authenticated with the user.
+    if not authenticated then @trigger 'authenticated'
+
+  refreshAuthorization: =>
+    # TODO: Refreshing of authorization codes.
+
+  isAuthenticated: => @token != null
 

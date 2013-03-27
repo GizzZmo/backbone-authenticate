@@ -8,11 +8,20 @@ Provides OAuth2 client support to Backbone applications.
 # https://gist.github.com/raw/1025817/bd35871da67be0073fffc37414e3e18e627b0d22/jquery.ba-deparam.js
 
 # Create references to depenencies in the local scope
-Backbone = window.Backbone or {}
 
-_ = window._
+if window?
+  jQuery = window.jQuery
 
-jQuery = window.jQuery
+  Backbone = window.Backbone or {}
+  _ = window._
+
+else
+  jQuery = require 'jquery'
+
+  Backbone = require 'backbone'
+  _ = require 'underscore'
+
+
 $ = jQuery
 
 # Creates our Authenticator namespace if it doesn't already exist
@@ -55,6 +64,9 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
   # During the auth process, this is the window where authentication is occuring.
   dialog: null
+
+  # Whether or not we are currently authenticated
+  authenticated: false
 
   requiredOptions: [
     'authenticateURI',
@@ -132,7 +144,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
   authorizationData: (code) ->
     ### Builds the URL for our authorization endpoint for getting tickets. ###
-    
+
     params = {}
 
     params[@registry.paramNames.client_id] = @registry.clientID
@@ -196,11 +208,11 @@ Backbone.Authenticate.Authenticator = class Authenticator
     ### Response handler for "code" response type.
 
     ####
-    
+
     if !parameters.code?
       throw new Error 'No code parameter was provided by the provider.'
 
-    jQuery.ajax 
+    jQuery.ajax
       type: 'POST'
       url: @registry.authorizeURI
       data: @authorizationData parameters.code

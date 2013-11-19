@@ -69,9 +69,9 @@ Backbone.Authenticate.Authenticator = class Authenticator
   authenticated: false
 
   requiredOptions: [
-    'authenticateURI',
-    'redirectURI',
-    'clientID',
+    'authenticateURI'
+    'redirectURI'
+    'clientID'
   ]
 
   responseHandlerPrefix: 'handle'
@@ -181,7 +181,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
 
     else
       # TODO: Test whether or not this even works
-      window.location = authenticateURI
+      window.location.assign authenticateURI
 
   processResponse: =>
     ### After authentication, this function finishes the authentication process.
@@ -243,11 +243,11 @@ Backbone.Authenticate.Authenticator = class Authenticator
     @trigger 'token:changed'
 
     # The "authenticated" event is a special event that only is triggered when
-    # a user has manually authenticated with the user.
-    if not authenticated then @trigger 'authenticated'
+    # some third party code has received a 'token:changed' event and manually
+    # sets up authentication itself.
+    @trigger 'authenticated' unless authenticated
 
   refreshAuthorization: =>
-    # TODO: Refreshing of authorization codes.
+    # TODO: Refreshing of authorization codes before expiration.
 
   isAuthenticated: => @token != null
-

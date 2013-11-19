@@ -233,8 +233,6 @@ Backbone.Authenticate.Authenticator = class Authenticator
   processToken: (response) =>
     authenticated = @isAuthenticated()
 
-    window.response = response
-
     @token = response.access_token
     @refreshToken = response.refresh_token
     @expires = response.expires_in

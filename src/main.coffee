@@ -54,7 +54,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
   expires: null
 
   # When we have a refresh token, it is stored here.
-  refershToken: null
+  refreshToken: null
 
   # The persmissions that have been given to us stored as a list
   scope: []

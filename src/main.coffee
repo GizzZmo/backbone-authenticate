@@ -231,7 +231,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
     @processToken parameters.token
 
   processToken: (response) =>
-    authenticated = @isAuthenticated()
+    alreadyAuthenticated = @isAuthenticated()
 
     @token = response.access_token
     @refreshToken = response.refresh_token
@@ -241,11 +241,7 @@ Backbone.Authenticate.Authenticator = class Authenticator
     if @refreshToken != null then setTimeout @refreshAuthorization, @expires * 1000
 
     @trigger 'token:changed'
-
-    # The "authenticated" event is a special event that only is triggered when
-    # some third party code has received a 'token:changed' event and manually
-    # sets up authentication itself.
-    @trigger 'authenticated' unless authenticated
+    @trigger 'authenticated' unless alreadyAuthenticated
 
   refreshAuthorization: =>
     # TODO: Refreshing of authorization codes before expiration.

@@ -1,249 +1,226 @@
-### Backbone.Authenticator
+###
+Backbone.Authenticator
 
-Provides OAuth2 client support to Backbone applications.
-
+Provides OAuth2 client support to Backbone applications, with minimal dependencies and improved maintainability.
 ###
 
-# TODO: Remove dependency on jQuery.deparam, which can be found here until then:
-# https://gist.github.com/raw/1025817/bd35871da67be0073fffc37414e3e18e627b0d22/jquery.ba-deparam.js
-
-# Create references to depenencies in the local scope
-
-if window?
+# Environment abstraction
+if typeof window isnt "undefined"
   jQuery = window.jQuery
-
   Backbone = window.Backbone or {}
   _ = window._
-
 else
   jQuery = require 'jquery'
-
   Backbone = require 'backbone'
   _ = require 'underscore'
 
-
 $ = jQuery
 
-# Creates our Authenticator namespace if it doesn't already exist
+# Utility: Parse query string to object (replaces jQuery.deparam)
+parseQueryString = (query) ->
+  params = {}
+  if !query then return params
+  pairs = query.replace(/^\?/, '').split('&')
+  for pair in pairs when pair
+    [key, value] = pair.split('=')
+    key = decodeURIComponent(key)
+    value = decodeURIComponent(value or '')
+    params[key] = value
+  params
+
+# OAuth2 parameter names mapping (standardized)
+paramNames =
+  clientId: 'client_id'
+  clientSecret: 'client_secret'
+  redirectUri: 'redirect_uri'
+  scope: 'scope'
+  state: 'state'
+  responseType: 'response_type'
+  grantType: 'grant_type'
+  code: 'code'
+
+# Default registry (static property)
 Backbone.Authenticate = Backbone.Authenticate or {}
+Backbone.Authenticate.defaultRegistry =
+  popup: true
+  responseType: 'code'
+  grantType: 'authorization_code'
+  paramNames: paramNames
 
-Backbone.Authenticate.defaultRegistry = defaultRegistry =
-    popup: true
-    responseType: 'code'
-    grantType: 'authorization_code'
+# Required options (static property)
+Backbone.Authenticate.requiredOptions = [
+  'authenticateUri'
+  'redirectUri'
+  'clientId'
+]
 
-    paramNames:
-      client_id: 'client_id'
-      client_secret: 'client_secret'
-      redirect_uri: 'redirect_uri'
-      scope: 'scope'
-      state: 'state'
-      response_type: 'response_type'
-      grant_type: 'grant_type'
-      code: 'code'
-
+###
+Core object to perform all authentication-related tasks for OAuth2.
+###
 Backbone.Authenticate.Authenticator = class Authenticator
-  """ Core object which can be used to perform all authentication-related tasks.
 
-  """
+  # Static properties for config and required fields
+  @defaultRegistry: Backbone.Authenticate.defaultRegistry
+  @requiredOptions: Backbone.Authenticate.requiredOptions
 
-  # When we have a token, it will be stored here.
-  token: null
-
-  # When does this ticket expire?
-  expires: null
-
-  # When we have a refresh token, it is stored here.
-  refreshToken: null
-
-  # The persmissions that have been given to us stored as a list
-  scope: []
-
-  # When we've received a token, all response parameters will be available here.
-  response: null
-
-  # During the auth process, this is the window where authentication is occuring.
-  dialog: null
-
-  # Whether or not we are currently authenticated
-  authenticated: false
-
-  requiredOptions: [
-    'authenticateURI'
-    'redirectURI'
-    'clientID'
-  ]
-
-  responseHandlerPrefix: 'handle'
-
-  registry: defaultRegistry
-
-  constructor: (options) ->
+  ###
+  Constructor: Accepts options for configuration.
+  ###
+  constructor: (options = {}) ->
     _.extend @, Backbone.Events
 
-    options = options or {}
+    # Registry: deep copy of default, then override with user options
+    @registry = _.extend {}, @constructor.defaultRegistry, options
     @parseOptions options
 
+    # Auth state
+    @token = null
+    @expires = null
+    @refreshToken = null
+    @scope = []
+    @response = null
+    @dialog = null
+    @authenticated = false
+
+  ###
+  Parse options and validate required fields.
+  ###
   parseOptions: (options) ->
-    _.extend @registry, options
+    reg = @registry
+    # Support comma string for scope
+    if reg.scope? and not Array.isArray(reg.scope)
+      reg.scope = _.map reg.scope.split(','), (s) -> s.trim()
+    # Validate required options
+    for name in @constructor.requiredOptions
+      unless reg[name]?
+        throw new Error "Option '#{name}' must be provided to Authenticator."
 
-    for name in @requiredOptions
+    # Validate supported response type
+    methodName = @methodNameForResponseType reg.responseType
+    unless @[methodName]?
+      throw new Error "'#{reg.responseType}' is not a supported response type."
 
-      # If someone creates an inherited class that defines these, we're okay.
-      if @registry[name] then continue
+    # Extra checks for code flow
+    if reg.responseType is 'code'
+      unless reg.authorizeUri?
+        throw new Error "Option 'authorizeUri' is required for code-based authentication."
+      unless reg.grantType?
+        throw new Error "Option 'grantType' must be provided for code-based authentication."
 
-      # Throws an error if a required option hasn't been provided.
-      @registry[name]? or
-
-        throw new Error "An #{name} option must be provided to your
-                         Authenticator."
-
-    if @registry.responseType? and !@[@methodNameForResponseType @registry.responseType]?
-        throw new Error "#{@registry.responseType} is not a supported response
-                         type for this authenticator."
-
-    if @registry.responseType == 'code'
-
-      if !@registry.authorizeURI?
-        throw new Error 'Code-based authentication requires authorizeURI
-                         is provided to your authenticator.'
-
-      if !@registry.grantType?
-        throw new Error 'The grantType option must be provided when using
-                         code-based authentication.'
-
-    # Scopes are supposed to be passed as lists, but strings are supported.
-    if @registry.scope? and not @registry.scope.join?
-      @registry.scope = _.map @registry.scope.split ','
-
-  authenticateURI: ->
-    ### Builds the URL to our initial OAuth endpoint.                      ###
-
+  ###
+  Build the OAuth authentication URL.
+  ###
+  authenticateUri: ->
+    reg = @registry
     params = {}
+    params[reg.paramNames.client_id] = reg.clientId
+    params[reg.paramNames.redirect_uri] = reg.redirectUri
+    params[reg.paramNames.response_type] = reg.responseType
+    if reg.state? then params[reg.paramNames.state] = reg.state
+    if reg.scope? then params[reg.paramNames.scope] = reg.scope.join(',')
 
-    params[@registry.paramNames.client_id] = @registry.clientID
-    params[@registry.paramNames.redirect_uri] = @registry.redirectURI
-    params[@registry.paramNames.response_type] = @registry.responseType
+    paramString = (k + '=' + encodeURIComponent(v) for k, v of params when v?).join('&')
+    reg.authenticateUri + '?' + paramString
 
-    # Add state and scope as necessary
-    if @registry.state? then params[@registry.paramNames.state] = @registry.state
-    if @registry.scope? then params[@registry.paramNames.scope] = @registry.scope.join ','
-
-    paramNames = _.keys params
-
-    # Convert our params object to a list of strings formatted with '='
-    paramString = _.map paramNames, (name) ->
-      if params[name]? and params[name] != ''
-        return name + '=' + params[name]
-      else
-        return name
-
-    paramString = paramString.join '&'
-
-    @registry.authenticateURI + '?' + paramString
-
+  ###
+  Build the POST data for requesting the access token.
+  ###
   authorizationData: (code) ->
-    ### Builds the URL for our authorization endpoint for getting tickets. ###
-
+    reg = @registry
     params = {}
+    params[reg.paramNames.client_id] = reg.clientId
+    params[reg.paramNames.grant_type] = reg.grantType
+    params[reg.paramNames.redirect_uri] = reg.redirectUri
+    params[reg.paramNames.code] = code
+    if reg.clientSecret?
+      params[reg.paramNames.client_secret] = reg.clientSecret
+    params
 
-    params[@registry.paramNames.client_id] = @registry.clientID
-    params[@registry.paramNames.grant_type] = @registry.grantType
-    params[@registry.paramNames.redirect_uri] = @registry.redirectURI
-    params[@registry.paramNames.code] = code
-
-    if @registry.clientSecret?
-      params[@registry.paramNames.client_secret] = @registry.clientSecret
-
-    return params
-
+  ###
+  Get the handler method name for a response type.
+  ###
   methodNameForResponseType: (typeName) ->
-    ### Receives a response type and converts it into it's handler's method name.
+    prefix = 'handle'
+    formatted = typeName.charAt(0).toUpperCase() + typeName.slice(1).toLowerCase()
+    prefix + formatted
 
-    ###
-
-    formattedTypeName = typeName[0].toUpperCase() + typeName[1..].toLowerCase()
-
-    return @responseHandlerPrefix + formattedTypeName
-
-  begin: =>
-    ### Initiates the user authentication process.
-
-    Initiates the user authentication process. Optionally, you can provide any
-    registry options that this process should override.
-
-    ###
-
-    authenticateURI = @authenticateURI()
-
+  ###
+  Start the authentication process.
+  ###
+  begin: (overrideOptions = {}) =>
+    _.extend @registry, overrideOptions
+    url = @authenticateUri()
     if @registry.popup is true
-      @dialog = window.open authenticateURI
-
+      @dialog = window.open url
     else
-      # TODO: Test whether or not this even works
-      window.location.assign authenticateURI
+      window.location.assign url
 
+  ###
+  Process OAuth response from the provider.
+  ###
   processResponse: =>
-    ### After authentication, this function finishes the authentication process.
-
-    ###
-
-    parameters = jQuery.deparam window.location.search[1..]
-
-    if !parameters.error?
-      # Get a reference to our function that handles this type of response
-      handlerName = @methodNameForResponseType @registry.responseType
+    params = parseQueryString(window.location.search)
+    if !params.error?
+      handlerName = @methodNameForResponseType(@registry.responseType)
       handler = @[handlerName]
-
-      # Call our handler method providing parameters object
-      handler parameters
-
+      handler(params)
     else
-      @trigger 'error', parameters.error
+      @trigger 'error', params.error
+    if params.state?
+      @trigger 'state:change', params.state
 
-    if parameters.state?
-      @trigger 'state:change', parameters.state
-
+  ###
+  Handle "code" response type.
+  Exchanges authorization code for an access token.
+  ###
   handleCode: (parameters) =>
-    ### Response handler for "code" response type.
-
-    ####
-
-    if !parameters.code?
-      throw new Error 'No code parameter was provided by the provider.'
-
-    jQuery.ajax
+    unless parameters.code?
+      throw new Error "No 'code' parameter provided by the provider."
+    # Use Promises for AJAX
+    $.ajax(
       type: 'POST'
-      url: @registry.authorizeURI
-      data: @authorizationData parameters.code
-
+      url: @registry.authorizeUri
+      data: @authorizationData(parameters.code)
       success: (response) =>
-        @processToken JSON.parse response
+        try
+          data = if typeof response is 'string' then JSON.parse(response) else response
+          @processToken data
+        catch e
+          @trigger 'error', "Failed to parse authorization response: #{e}"
+      error: (xhr, status, err) =>
+        @trigger 'error', "Token request failed: #{status} #{err}"
+    )
 
+  ###
+  Handle "token" response type (implicit grant).
+  ###
   handleToken: (parameters) =>
-    ### Response handler for "token" response type.
-
-    ###
-
-    if !parameters.token?
-      throw new Error 'No token parameter was provided by the OAuth provider.'
-
+    unless parameters.token?
+      throw new Error "No 'token' parameter provided by the OAuth provider."
     @processToken parameters.token
 
+  ###
+  Store and process received token data.
+  ###
   processToken: (response) =>
     alreadyAuthenticated = @isAuthenticated()
-
     @token = response.access_token
     @refreshToken = response.refresh_token
     @expires = response.expires_in
-    @scope = response.scope.split ','
-
-    if @refreshToken != null then setTimeout @refreshAuthorization, @expires * 1000
-
+    @scope = if typeof response.scope is 'string' then response.scope.split(',') else []
+    if @refreshToken? and @expires?
+      setTimeout @refreshAuthorization, @expires * 1000
     @trigger 'token:changed'
     @trigger 'authenticated' unless alreadyAuthenticated
 
+  ###
+  Refresh authorization (stub for future implementation).
+  ###
   refreshAuthorization: =>
-    # TODO: Refreshing of authorization codes before expiration.
+    # TODO: Implement refresh token logic.
+    null
 
-  isAuthenticated: => @token != null
+  ###
+  Returns true if authenticated.
+  ###
+  isAuthenticated: => !!@token
